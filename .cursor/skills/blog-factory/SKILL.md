@@ -152,40 +152,70 @@ graph LR
 
 ## Pipeline Workflow — 博客生产流水线
 
-整个流水线在 Cursor 中由 AI Agent 驱动，用户无需手动跑任何 Python 命令。
+整个流水线在 Cursor 中由 AI Agent 驱动，三种博客类型走不同的分支。
 
 ```mermaid
-graph LR
-    A[Step 1: Discover] --> B[Step 2: Score]
-    B --> C[Select: 人看表 + AI 写文件]
-    C --> D[Step 3: Produce]
-    D --> E[Phase 3: Cover Image]
+graph TD
+    START{用户意图} -->|"nexu 发版了"| ANN[Announcement 分支]
+    START -->|"写个教程"| GUIDE[Guide 分支]
+    START -->|"找热点写文章"| UC[Use Case 分支]
+
+    ANN --> ANN1[用户提供 Release 信息]
+    ANN1 --> ANN2[AI 按公告模板写文章]
+    ANN2 --> COVER[封面生成]
+
+    GUIDE --> G1[用户提供功能 / 操作说明]
+    G1 --> G2[AI 按教程模板写文章]
+    G2 --> COVER
+
+    UC --> UC1[Discover: 抓热点]
+    UC1 --> UC2[Score: LLM 打分]
+    UC2 --> UC3[Select: 人看表 + AI 写文件]
+    UC3 --> UC4[Produce: LLM 生成文章]
+    UC4 --> COVER
+
+    COVER --> OUTPUT["双语输出 EN + ZH"]
 ```
+
+### 三种博客类型
+
+| 类型 | category 值 | 信息源 | 需要 Python Pipeline? | 文章结构 |
+|------|------------|--------|----------------------|---------|
+| **Announcement** | `Announcements` | GitHub Release / PR / 产品路线图 | 不需要 — 用户告诉 AI，AI 直接写 | What changed → Why it matters → How to use |
+| **Guide** | `Guides` | 新功能上线 / 用户 FAQ | 不需要 — 用户告诉 AI，AI 直接写 | Step 1 → Step 2 → Step 3（带截图） |
+| **Use Case** | `Use Cases` | 外部热点（Google Trends / HN / Reddit / GitHub） | 需要 — discover → score → select → produce | 痛点 → 方案 → 流程重构 → ROI |
+
+### Announcement 工作流
+
+用户说"nexu v0.1.8 发布了"或提供 changelog / PR 列表时触发。
+
+1. 用户提供：版本号、changelog、重点功能、修复列表
+2. AI 按下方 **Announcement 模板** 生成文章
+3. 产出 EN + ZH 两个版本
+4. 生成封面图
+
+### Guide 工作流
+
+用户说"写个教程"或"nexu 新增了 X 功能"时触发。
+
+1. 用户提供：功能说明、操作步骤、相关截图路径
+2. AI 按下方 **Guide 模板** 生成文章
+3. 产出 EN + ZH 两个版本
+4. 生成封面图
+
+### Use Case 工作流（Python Pipeline）
+
+用户说"找热点写文章"时触发，使用完整的 Python 发现 + 打分流水线。
 
 | 步骤 | 执行者 | 做什么 | 产出 |
 |------|--------|--------|------|
-| **Step 1: Discover** | AI Agent 运行 `step1_discover.py` | 从 Google Trends / HN / GitHub / Reddit 抓热点 | `output/topics/{date}-topics.json` |
-| **Step 2: Score** | AI Agent 运行 `step2_score.py` | LLM 对话题做相关性打分，筛出 Top N | `output/scored/{date}-candidates.json` + `.md` |
+| **Discover** | AI Agent 运行 `step1_discover.py` | 从 Google Trends / HN / GitHub / Reddit 抓热点 | `output/topics/{date}-topics.json` |
+| **Score** | AI Agent 运行 `step2_score.py` | LLM 对话题做相关性打分，筛出 Top N | `output/scored/{date}-candidates.json` + `.md` |
 | **Select** | **人 + AI 协作，不跑脚本** | 用户看 `candidates.md` 表格，告诉 AI 选哪几个，AI 直接写 `selected.json` | `output/scored/{date}-selected.json` |
-| **Step 3: Produce** | AI Agent 运行 `step3_produce.py` | 用 SKILL.md 作为 system prompt，LLM 生成完整文章 | `output/drafts/{date}/{slug}.md` |
-| **Cover Image** | AI Agent（Figma MCP 或图片生成） | 生成封面图 | `output/images/{slug}-cover.png` |
+| **Produce** | AI Agent 运行 `step3_produce.py` | 用 SKILL.md 作为 system prompt，LLM 生成完整文章 | `output/drafts/{date}/{slug}.md` |
+| **Cover** | AI Agent（Figma MCP 或图片生成） | 生成封面图 | `output/images/{slug}-cover.png` |
 
-### Select 步骤详细说明
-
-这一步完全在 Cursor 对话中完成，流程如下：
-
-1. AI 打开或展示 `output/scored/{date}-candidates.md` 中的候选表格
-2. 用户浏览表格，告诉 AI 要选哪几篇（如"选 1、3、5、7"）
-3. AI 从 `candidates.json` 中提取对应条目，直接写入 `output/scored/{date}-selected.json`
-
-`selected.json` 格式：
-```json
-{
-  "date": "YYYY-MM-DD",
-  "total": 3,
-  "topics": [ /* 从 candidates 中选出的条目 */ ]
-}
-```
+**Select 步骤**完全在 Cursor 对话中完成：用户看 `candidates.md` 表格 → 告诉 AI 选哪几篇 → AI 直接写 `selected.json`。
 
 ---
 
@@ -203,7 +233,100 @@ graph LR
 
 ---
 
-## Content Workflow
+## Blog Type Templates
+
+### Announcement Template — 产品公告
+
+产品发版、新功能上线、新集成接入时使用。nexu 是文章主角。
+
+**信息源：** 用户提供 GitHub Release notes / PR 列表 / changelog
+
+**结构：**
+
+```markdown
+# nexu vX.Y.Z: [一句话概括最大亮点]
+
+> nexu — the simplest open-source OpenClaw desktop client — [本次更新核心价值]
+
+## Highlights
+**[emoji] [功能名]** — [一句话说清楚这个功能做什么 + 对用户意味着什么]
+（每个重点功能一条，3-5 条）
+
+## Who This Helps
+（2-3 个用户画像 + 他们的具体痛点如何被解决）
+
+## What's New
+（次要更新、文档更新等）
+
+## Bug Fixes
+（逐条列出修复，简洁明了）
+
+## How to Get Started
+（下载链接 + 关键操作步骤）
+
+## Contributors
+（@contributor1, @contributor2...）
+
+Full Changelog: [vX.Y.Z-1...vX.Y.Z](link)
+Source: [GitHub Releases](link)
+```
+
+**注意事项：**
+- Announcement 不适用 Writing Principles #2（业务流程图）和 #4（Start Now / Decision Checklist）
+- 但仍然适用 #1（反废话）和 #3（技术内容要落地）
+- Bug Fixes 段落要具体：不是"修复了一些问题"，而是"修复了升级后白屏问题——plist 配置漂移现在自动检测并重建"
+
+---
+
+### Guide Template — 操作教程
+
+渠道接入教程、功能配置教程、对比指南时使用。nexu 是文章主角。
+
+**信息源：** 用户提供功能说明、操作步骤、截图
+
+**结构：**
+
+```markdown
+# [Channel Setup / Skill Setup / Model Setup]: [动作] in [时间]
+
+> [一句话概括：做什么 + 多快 + 不需要什么]
+
+[1-2 句介绍上下文和前提条件]
+
+## Step 1: [动作]
+[说明文字]
+![描述性 alt](~/assets/images/{slug}-step1-{name}.webp)
+
+## Step 2: [动作]
+[说明文字]
+![描述性 alt](~/assets/images/{slug}-step2-{name}.webp)
+
+## Step 3: [动作]
+...（按实际步骤继续）
+
+## FAQ
+**Q: [常见问题]?** A: [简洁回答]
+（3-5 个 FAQ）
+```
+
+**注意事项：**
+- Guide 不适用 Writing Principles #2（业务流程图）和 #4（Start Now / Decision Checklist）
+- 但仍然适用 #1（反废话）和 #3（技术内容要落地）
+- 每个 Step 必须配截图（如果用户提供了截图路径）
+- 截图处理遵循下方的 Screenshot Insertion Rule
+- FAQ 必须包含至少"是否需要重启""如何卸载/撤销"两类问题
+
+---
+
+### Use Case Template — 热点实战
+
+基于外部热点话题、嫁接 nexu 场景的深度内容。nexu 不是主角，是方案中的工具选项。
+
+这是下方 **Content Workflow** 中 Phase 1 + Phase 2 定义的完整流程，使用"痛点 → 方案 → 流程重构 → ROI"的商业叙事结构。Brand Integration Guide 的融入规则在此类型中完全生效。
+
+---
+
+## Content Workflow — Use Case 详细流程
 
 ### Phase 1: Analyze — 热点拆解
 
@@ -333,9 +456,32 @@ graph LR
 | **Show, don't tell** | 能给代码片段就不给伪代码，能给架构图就不给文字描述 |
 | **工具链具体化** | 提到工具时给出具体名称 + 版本 + 链接，不说"可以用某某工具" |
 
-### Phase 3: Cover — Figma MCP 封面生成
+### Phase 3: Cover — 封面生成（Figma MCP → 图片生成降级）
 
 Phase 2 完成后，自动进入封面生成流程。
+
+#### 重要：超时与降级规则
+
+**Phase 3 的总时间预算为 3 分钟（每张封面）。** 超过即触发降级。
+
+```mermaid
+graph TD
+    A[Phase 2 完成] --> B[提取 Cover Title]
+    B --> C{Figma MCP 可用?}
+    C -->|是| D[尝试 Figma 方案]
+    D --> E{成功?}
+    E -->|是| F[导出 PNG ✓]
+    E -->|否，且已尝试 ≤2 次| D
+    E -->|否，已尝试 >2 次| G[降级：图片生成]
+    C -->|否| G
+    G --> H[用图片生成工具创建封面]
+    H --> F
+```
+
+**规则：**
+1. Figma MCP `use_figma` 最多调用 **2 次**。第 2 次仍失败 → 立即停止，切换到降级方案
+2. 降级方案：使用图片生成工具（DALL-E / 本地生成），基于 Design Tokens 中的视觉规范生成封面
+3. 如果降级也失败 → 在 frontmatter 中标记 `cover_status: "pending"`，继续下一篇，**不要卡住**
 
 #### Figma 文件定位
 
@@ -346,6 +492,8 @@ Phase 2 完成后，自动进入封面生成流程。
 | **空白模板** | `987:1603`（Frame 83，无文字，用于克隆） |
 | **中文封面容器** | `899:1210`（Frame 81） |
 | **英文封面容器** | `958:1155`（Frame 83 大容器） |
+
+**模板要求：** 空白模板 `987:1603` 必须是**自包含的 Frame**——背景图、遮罩层、Logo、Wordmark 全部作为 Frame 的子元素存在。如果背景图是页面上的独立图层（不在 Frame 内），`clone()` 无法带上背景，会导致封面没有背景图。遇到这种情况不要反复尝试用代码重建背景，直接降级到图片生成方案。
 
 #### Step 3.1: 提取封面标题
 
@@ -367,21 +515,7 @@ Phase 2 完成后，自动进入封面生成流程。
 **中文换行规则：** 超过 8 个汉字时拆成两行（用 `\n`），每行保持语义完整。
 示例：`10 分钟在飞书上` / `部署 AI 机器人`
 
-#### Step 3.2: Figma MCP 操作序列
-
-```mermaid
-graph TD
-    A[Phase 2 完成] --> B[提取 Cover Title + 判断语言]
-    B --> C[use_figma: 克隆空白模板 987:1603]
-    C --> D[创建 Text 节点并写入 Cover Title]
-    D --> E{中文 or 英文?}
-    E -->|中文| F[应用 MiSans VF / Medium / 113pt / 居中]
-    E -->|英文| G[应用 Hiragino Mincho Pro / W3 / 100pt / 左对齐]
-    F --> H[get_screenshot: 导出 PNG]
-    G --> H
-    H --> I[保存至 ./output/images/]
-    I --> J[更新 Blog MD 的 cover_image 字段]
-```
+#### Step 3.2: Figma MCP 操作序列（主方案）
 
 具体 MCP 调用流程：
 
@@ -392,26 +526,64 @@ graph TD
 5. **Save** — 将截图保存到 `./output/images/{slug}-cover.png`
 6. **Link** — 将图片路径写回博客 markdown 的 `cover_image` 字段
 
+**Clone 后立即验证：** 在 Step 2 之前，先对克隆结果调用 `get_screenshot` 检查是否包含背景图。如果截图显示空白/透明背景 → 说明模板结构有问题，**立即降级**，不要尝试用代码重建背景。
+
 **use_figma 核心代码模板（中文封面）：**
 ```javascript
 const template = figma.getNodeById('987:1603');
 const clone = template.clone();
 clone.name = 'Cover-{slug}';
-// 加载字体
-await figma.loadFontAsync({ family: 'MiSans VF', style: 'Medium' });
-// 创建文本节点
+await figma.loadFontAsync({ family: 'Noto Sans SC', style: 'Medium' });
 const text = figma.createText();
-text.fontName = { family: 'MiSans VF', style: 'Medium' };
-text.fontSize = 113;
+text.fontName = { family: 'Noto Sans SC', style: 'Medium' };
+text.fontSize = 80;
 text.characters = '{Cover Title}';
 text.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
 text.textAlignHorizontal = 'CENTER';
 text.textAlignVertical = 'CENTER';
-text.resize(843, 294);
-text.x = 480; text.y = 360;
+text.resize(770, 208);
+text.x = 516; text.y = 403;
 text.lineHeight = { unit: 'PERCENT', value: 130 };
 clone.appendChild(text);
 ```
+
+**use_figma 核心代码模板（英文封面）：**
+```javascript
+const template = figma.getNodeById('987:1603');
+const clone = template.clone();
+clone.name = 'Cover-{slug}';
+await figma.loadFontAsync({ family: 'Noto Serif', style: 'Regular' });
+const text = figma.createText();
+text.fontName = { family: 'Noto Serif', style: 'Regular' };
+text.fontSize = 100;
+text.characters = '{Cover Title}';
+text.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+text.textAlignHorizontal = 'LEFT';
+text.textAlignVertical = 'CENTER';
+text.resize(1300, 260);
+text.x = 200; text.y = 377;
+text.lineHeight = { unit: 'PERCENT', value: 130 };
+clone.appendChild(text);
+```
+
+#### Step 3.3: 降级方案 — 图片生成封面
+
+当 Figma MCP 失败（超过 2 次尝试）时，使用图片生成工具生成封面：
+
+**Prompt 模板：**
+```
+Blog cover image, 1802x1013px, dark cinematic background with subtle
+cyan/teal inner glow border (#3DB9CE), white text "{Cover Title}"
+centered, small "nexu" wordmark bottom-right corner, moody atmospheric
+lighting, professional tech blog aesthetic. No extra decorations.
+```
+
+**要求：**
+- 尺寸：1802 × 1013 px
+- 风格：与 Figma 模板一致的暗调电影感
+- 必须包含封面标题文字（白色）
+- 必须包含 nexu wordmark（右下角）
+- 保存路径同主方案：`./output/images/{slug}-cover.png`
 
 ---
 
@@ -453,15 +625,15 @@ clone.appendChild(text);
 
 | Token | 英文标题 | 中文标题 |
 |-------|---------|---------|
-| **字体** | Hiragino Mincho Pro | MiSans VF |
-| **字重/样式** | W3 | Medium |
-| **字号** | 100pt | 113pt |
-| **颜色** | `#FFFFFF`（Variable `301:143`） | `#FFFFFF`（Variable `301:143`） |
+| **字体** | Noto Serif | Noto Sans SC |
+| **字重/样式** | Regular | Medium |
+| **字号** | 100pt | 80pt |
+| **颜色** | `#FFFFFF` | `#FFFFFF` |
 | **水平对齐** | LEFT | CENTER |
 | **垂直对齐** | CENTER | CENTER |
 | **行高** | 130% | 130% |
-| **文本框位置** | x:277, y:333 | x:480, y:360 |
-| **文本框尺寸** | 1716 × 272 px | 843 × 294 px |
+| **文本框位置** | x:200, y:377 | x:516, y:403 |
+| **文本框尺寸** | 1300 × 260 px | 770 × 208 px |
 
 ---
 
@@ -484,9 +656,13 @@ clone.appendChild(text);
 
 ## Output Format
 
-每篇文章**必须同时产出中文和英文两个版本**，确保双语覆盖不同受众。
+### 目标仓库
 
-### 双语写作规则
+所有博客文章最终部署到 `nexu-io/nexu-landing` 仓库的 `blog/` 目录，使用 Astro 框架。
+
+### 双语输出规则
+
+每篇文章**必须同时产出中文和英文两个版本**。
 
 | 规则 | 说明 |
 |------|------|
@@ -494,51 +670,60 @@ clone.appendChild(text);
 | **中文版** | 语言流畅直白、专业易懂，像一个懂技术的朋友在白板前讲方案；避免生硬的翻译腔和过度的书面语 |
 | **英文版** | 简洁专业，用 active voice，像技术博客而非学术论文；每句话推进一步，删掉 filler words |
 | **共享素材** | 两个版本使用相同的 Mermaid 图、代码片段、数据表格，文字说明各自适配 |
-| **slug** | 英文版用英文 slug，中文版用相同 slug 加 `-zh` 后缀 |
 | **封面** | 两个版本各自生成封面（英文标题 / 中文标题），遵循 Design Tokens 中的语言分支规则 |
 
-### 文件结构
-
-每篇文章交付 4 个文件：
+### 文件命名规范（匹配 nexu-landing）
 
 ```
-output/drafts/{date}/{slug}.md          # 英文版
-output/drafts/{date}/{slug}-zh.md       # 中文版
-output/images/{slug}-cover.png          # 英文封面
-output/images/{slug}-zh-cover.png       # 中文封面
+blog/src/data/post/{slug}.md              # 英文版
+blog/src/data/post/{slug}.zh.md           # 中文版（注意：.zh.md 不是 -zh.md）
+blog/src/assets/images/blog-{slug}-en.webp  # 英文封面
+blog/src/assets/images/blog-{slug}-zh.webp  # 中文封面
 ```
 
-### Blog Markdown Frontmatter
+本地草稿阶段也遵循相同命名：
+```
+output/drafts/{date}/{slug}.md
+output/drafts/{date}/{slug}.zh.md
+output/images/blog-{slug}-en.webp
+output/images/blog-{slug}-zh.webp
+```
+
+### Astro Frontmatter（必须严格遵守）
 
 ```markdown
 ---
-title: "动词开头的 SEO 标题"
-description: "150-160 字符的 meta description"
-slug: "keyword-slug"
-date: YYYY-MM-DD
-lang: "en"  # or "zh"
-keywords:
-  - 主关键词
-  - 次关键词 1
-  - 次关键词 2
-tags: []
-cover_image: "./output/images/keyword-slug-cover.png"
-cover_title: "封面上显示的短标题"
-visual_cues:
-  - "视觉描述词 1"
-  - "视觉描述词 2"
-  - "视觉描述词 3"
+publishDate: YYYY-MM-DDT00:00:00Z
+title: "文章标题"
+excerpt: "150-160 字符的摘要描述"
+image: ~/assets/images/blog-{slug}-{en|zh}.webp
+tags:
+  - announcements    # 或 guides / use-cases
+category: Announcements  # 或 Guides / Use Cases
 ---
-
-# 文章标题
-
-正文内容...
 ```
 
-### Cover Image
+**三种类型的 tags 和 category 对应：**
+
+| 博客类型 | `tags` | `category` |
+|----------|--------|------------|
+| Announcement | `- announcements` | `Announcements` |
+| Guide | `- guides` | `Guides` |
+| Use Case | `- use-cases` | `Use Cases` |
+
+**Frontmatter 规则：**
+- `publishDate` 使用 ISO 8601 格式，带 `T00:00:00Z` 后缀
+- `image` 路径使用 `~/assets/images/` 前缀（Astro 约定）
+- EN 和 ZH 版本的 frontmatter 结构完全相同，只是 `title` / `excerpt` / `image` 不同
+- 不要添加 Astro schema 中未定义的字段（如 `keywords` / `lang` / `cover_title`）
+
+### 每篇文章交付清单
 
 ```
-./output/images/{slug}-cover.png    # 2048 × 1024 px (2x)
+✅ {slug}.md          — 英文版文章（含 Astro frontmatter）
+✅ {slug}.zh.md       — 中文版文章（含 Astro frontmatter）
+✅ blog-{slug}-en.webp — 英文封面
+✅ blog-{slug}-zh.webp — 中文封面
 ```
 
 ---
@@ -567,38 +752,56 @@ visual_cues:
 
 ## Quality Gate
 
-交付前自检：
+交付前自检。根据博客类型选择对应的 checklist。
+
+### 通用检查（所有类型）
 
 ```
-Writing Principles Check:
-- [ ] 开头直切痛点，无废话开场白（准则 #1）
-- [ ] 包含至少一个 Mermaid 业务流程图或逻辑模型（准则 #2）
-- [ ] 所有不确定的术语/流程/数据已向用户确认（准则 #2 反幻觉）
-- [ ] AI 技术内容落地到商业闭环，有具体省时/省钱数字（准则 #3）
-- [ ] 结尾有 "Start Now 3 步骤" 或 "Decision Checklist"（准则 #4）
-
-Business Check:
-- [ ] 每个论点有数据/案例支撑
-- [ ] 所有建议一个人就能执行，不假设有团队
-- [ ] 提到的工具/框架给出了具体名称和链接
-- [ ] 有可直接复用的代码片段或配置示例
-- [ ] 没有正确但无用的废话段落
+Format Check:
+- [ ] Frontmatter 使用 Astro 格式（publishDate / title / excerpt / image / tags / category）
+- [ ] EN 和 ZH 两个版本都已产出
+- [ ] 文件命名正确：{slug}.md + {slug}.zh.md
 - [ ] 没有触发 Blacklist 中的任何表达
-
-SEO Check:
-- [ ] 主关键词在 H1 + 首段 + meta description + slug
-- [ ] 次关键词出现在 H2/H3
-- [ ] 关键词密度 0.5-1.5%
-- [ ] ≥ 2 内链 + ≥ 1 外链
-- [ ] Meta description 150-160 chars
+- [ ] 开头无废话开场白（Writing Principles #1）
 
 Cover Check:
-- [ ] Cover Title 已从内容中提取
-- [ ] 英文 5-9 词 / 中文 9-15 字
+- [ ] Cover Title 已提取（英文 5-9 词 / 中文 9-15 字）
 - [ ] 中文超 8 字已拆双行
-- [ ] Figma MCP 已调用并填充 Post_Cover 框架
-- [ ] Design Tokens 样式已应用（字体、颜色、位置）
-- [ ] PNG 已导出至 ./output/images/{slug}-cover.png
-- [ ] Blog MD 的 cover_image 字段已指向正确路径
-- [ ] 3 个 Visual Cues 已产出且 ≤ 20 字
+- [ ] 封面已通过 Figma MCP 或降级方案生成（Figma 最多 2 次尝试）
+- [ ] 封面命名：blog-{slug}-en.webp + blog-{slug}-zh.webp
+- [ ] Frontmatter 的 image 字段指向正确路径
+```
+
+### Announcement 专项
+
+```
+- [ ] Highlights 段落列出了 3-5 个重点功能
+- [ ] 每个功能一句话说清 what + why it matters
+- [ ] Bug Fixes 逐条列出，具体描述（不是"修复若干问题"）
+- [ ] How to Get Started 包含下载链接
+- [ ] Contributors 已列出
+- [ ] Full Changelog 链接正确
+```
+
+### Guide 专项
+
+```
+- [ ] 标题包含时间预估（如"in 10 Minutes"）
+- [ ] 每个 Step 配有截图（如用户提供了截图）
+- [ ] 截图遵循 Screenshot Insertion Rule
+- [ ] FAQ 至少 3 条
+- [ ] 前提条件已明确列出
+```
+
+### Use Case 专项
+
+```
+- [ ] 包含至少一个 Mermaid 业务流程图（Writing Principles #2）
+- [ ] AI 技术内容落地到商业闭环（Writing Principles #3）
+- [ ] 结尾有 Start Now 或 Decision Checklist（Writing Principles #4）
+- [ ] 每个论点有数据/案例支撑
+- [ ] 所有建议一个人能执行
+- [ ] nexu 融入自然，非硬广（Brand Integration Guide）
+- [ ] SEO: 主关键词在 H1 + 首段 + excerpt + slug
+- [ ] SEO: ≥ 2 内链 + ≥ 1 外链
 ```

@@ -25,3 +25,7 @@ venv/
 
 # Cursor internals (keep .cursor/skills/ but exclude the rest)
 .cursor/plans/
+
+# Generated static site
+site/
+build_site.py

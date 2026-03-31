@@ -26,7 +26,7 @@ class LLMClient:
                     "Set 'openai_api_key' in config.yaml or export OPENAI_API_KEY."
                 )
             base_url = config["llm"].get("base_url")
-            kwargs = {"api_key": api_key}
+            kwargs = {"api_key": api_key, "timeout": 60.0}
             if base_url:
                 kwargs["base_url"] = base_url
             self.client = OpenAI(**kwargs)
