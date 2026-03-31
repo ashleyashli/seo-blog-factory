@@ -1,0 +1,132 @@
+# ============================================================
+# Blog Pipeline Configuration
+# ============================================================
+# Copy this file to config.yaml and fill in your API keys.
+
+llm:
+  # "openai" = OpenAI-compatible endpoint (works with LiteLLM proxies)
+  provider: "openai"
+
+  # LiteLLM proxy endpoint
+  base_url: "https://your-litellm-proxy.example.com/v1"
+
+  # Scoring uses a cheap/fast model; writing uses a capable model
+  scoring_model: "anthropic/claude-3.5-haiku"
+  writing_model: "anthropic/claude-sonnet-4"
+
+  # API key for the LiteLLM proxy
+  openai_api_key: "sk-YOUR-KEY-HERE"
+  anthropic_api_key: ""
+
+# ------------------------------------------------------------
+# Data Sources — all free, no API keys required
+# ------------------------------------------------------------
+sources:
+  google_trends:
+    enabled: true
+    geo: ""                      # empty = worldwide; "US", "CN", etc.
+    timeframe: "now 7-d"
+    seed_keywords:
+      - "AI Agent"
+      - "LLM framework"
+      - "AI automation"
+      - "open source AI"
+      - "MCP protocol"
+      - "AI workflow"
+
+  hackernews:
+    enabled: true
+    top_n: 30
+    search_queries:
+      - "AI agent"
+      - "LLM"
+      - "open source AI"
+      - "automation framework"
+      - "MCP"
+
+  github_trending:
+    enabled: true
+    since: "daily"               # daily / weekly / monthly
+    spoken_language: ""           # empty = all languages
+
+  reddit:
+    enabled: true
+    subreddits:
+      - "LocalLLaMA"
+      - "LangChain"
+      - "MachineLearning"
+      - "SaaS"
+      - "artificial"
+    top_n: 10                    # per subreddit
+
+# ------------------------------------------------------------
+# Step 2: Relevance Scoring
+# ------------------------------------------------------------
+scoring:
+  relevance_threshold: 70        # minimum score to be a candidate
+  top_n_candidates: 20           # present this many for human review
+
+# ------------------------------------------------------------
+# Step 3: Blog Production
+# ------------------------------------------------------------
+production:
+  daily_count: 10
+  language: "zh"                 # "zh" or "en"
+  output_dir: "./output"
+
+# ------------------------------------------------------------
+# Domain — defines what "relevant" means for scoring
+# ------------------------------------------------------------
+domain:
+  core_areas:
+    - "AI Agent 架构: Multi-agent 编排、Tool-use、RAG pipeline、Memory 系统、Planning 策略"
+    - "开源框架: LangChain / LangGraph / CrewAI / AutoGen / Dify / n8n / Flowise / OpenClaw"
+    - "企业业务流程: CRM 自动化、客服 Agent、销售线索挖掘、文档处理、内部知识库"
+    - "产品化路径: PoC → MVP → 付费产品、定价策略、GTM for solo founders"
+    - "LLM 基础设施: API 选型、向量数据库、MCP 协议、多模型切换、BYOK"
+    - "IM 集成与 Agent 部署: WeChat / 飞书 / Slack / Discord Bot、桌面客户端、local-first 架构、Agent 24/7 在线"
+    - "一人公司工具链: BYOK 模式、开源 AI 工具、零代码 Agent 部署、跨境电商自动化、多平台内容矩阵"
+  brand: "nexu"
+  brand_context: |
+    ## 一句话定位
+    nexu (next to you) — 最简单的开源 OpenClaw 🦞 桌面客户端，一键把 AI Agent
+    桥接到 WeChat、飞书、Slack、Discord 等 IM 频道。
+
+    ## 核心差异化（6 点）
+    1. 双击安装，纯 GUI，零 CLI — 下载后双击即用，无需环境变量、依赖安装
+    2. 多模型一键切换 — Claude / GPT / Gemini / MiniMax / Codex / GLM，GUI 内切换，无厂商锁定
+    3. 本地优先 — 所有数据留在用户自己的机器上，不经过第三方服务器
+    4. BYOK (Bring Your Own Key) — 客户端完全免费，用户用自己的 API Key，无订阅费
+    5. MIT 开源 — 完全可审计、可 fork，社区驱动
+    6. 多 IM 内置集成 — WeChat / 飞书 / Slack / Discord 开箱即用
+
+    ## 附加能力
+    - OAuth 登录: MiniMax / OpenAI Codex / GLM 支持一键 OAuth，无需手动填 Key
+    - 内置 OpenClaw Skills + 飞书 Skills，Agent 直接进入真实工作流
+    - Beta 期间 Gemini 等顶级模型免费使用
+    - 连接 IM 后 Agent 24/7 在线，手机随时聊
+
+    ## 竞品对比
+    | 维度 | OpenClaw 官方 | 托管 Agent 方案 | nexu |
+    | 模型 | BYO，需手动配置 | 平台锁定，不可切换 | GUI 一键切换，OAuth 登录 |
+    | 数据 | 本地 | 经过厂商服务器 | 本地优先，不托管业务数据 |
+    | 成本 | 免费但需自部署 | 订阅 / 按席位收费 | 客户端免费，BYOK |
+    | 源码 | 开源 | 闭源 | MIT 开源 |
+    | IM | 需 DIY 集成 | 厂商限制 | WeChat / 飞书 / Slack / Discord 开箱即用 |
+    | 界面 | CLI，需技术能力 | 因厂商而异 | 纯 GUI，双击启动 |
+
+    ## 目标用户与 6 大场景
+    nexu 为一人公司 (One Person Company) 和小团队设计 — 一人一 AI 团队。
+
+    1. 跨境电商 / Solo 卖家
+    2. 内容创作者 / 知识博主
+    3. 独立开发者
+    4. 法律 / 财务 / 咨询
+    5. 本地商家 / 零售
+    6. 设计 / 创意
+
+    ## 关键数据
+    - GitHub: https://github.com/nexu-io/nexu (MIT, 1,493 stars)
+    - 官网: https://nexu.io
+    - 平台: macOS (Apple Silicon & Intel) + Windows
+    - 状态: Beta，顶级模型免费

@@ -1,0 +1,27 @@
+# Sensitive config (contains API keys)
+config.yaml
+
+# Pipeline output
+output/
+
+# History data
+data/
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Cursor internals (keep .cursor/skills/ but exclude the rest)
+.cursor/plans/

@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog Factory — Architecture Overview</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f17;
+    --surface: #1a1a2e;
+    --surface-2: #222240;
+    --border: #2e2e4a;
+    --text: #e4e4f0;
+    --text-muted: #8888a8;
+    --accent: #00e5ff;
+    --accent-dim: rgba(0,229,255,0.10);
+    --accent-border: rgba(0,229,255,0.25);
+    --green: #4ade80;
+    --orange: #fb923c;
+    --purple: #a78bfa;
+    --pink: #f472b6;
+    --red: #f87171;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hero {
+    text-align: center;
+    padding: 80px 24px 60px;
+    background: linear-gradient(180deg, rgba(0,229,255,0.06) 0%, transparent 100%);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    font-size: 18px;
+    color: var(--text-muted);
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  section {
+    padding: 60px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+
+  h2 .num {
+    color: var(--accent);
+    font-weight: 800;
+    margin-right: 8px;
+  }
+
+  .section-desc {
+    color: var(--text-muted);
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin: 28px 0 12px;
+  }
+
+  p { margin-bottom: 16px; }
+
+  /* Pipeline flow cards */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 32px 0;
+  }
+
+  .pipe-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .pipe-card:hover { border-color: var(--accent-border); }
+
+  .pipe-card .step-num {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .pipe-card h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .pipe-card p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+
+  .pipe-card .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+
+  .tag-ai {
+    background: rgba(167,139,250,0.15);
+    color: var(--purple);
+    border: 1px solid rgba(167,139,250,0.3);
+  }
+
+  .tag-human {
+    background: rgba(251,146,60,0.15);
+    color: var(--orange);
+    border: 1px solid rgba(251,146,60,0.3);
+  }
+
+  .tag-collab {
+    background: rgba(74,222,128,0.15);
+    color: var(--green);
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+
+  .pipe-arrow {
+    display: none;
+  }
+
+  @media (min-width: 800px) {
+    .pipe-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 20px;
+      min-width: 32px;
+    }
+    .pipeline {
+      display: flex;
+      align-items: stretch;
+    }
+    .pipe-card { flex: 1; min-width: 0; }
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 12px 16px;
+    background: var(--surface);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid var(--accent-border);
+  }
+
+  tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  tbody tr:hover { background: var(--surface); }
+
+  /* Detail blocks */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+  }
+
+  .detail-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .detail-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .detail-card h4 .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .detail-card ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .detail-card li {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 4px 0;
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .detail-card li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  /* Mermaid */
+  .mermaid-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+
+  .mermaid { text-align: center; }
+
+  /* Code blocks */
+  code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    background: var(--surface-2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    color: var(--text-muted);
+  }
+
+  /* Highlights */
+  .highlight-box {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .highlight-box strong { color: var(--accent); }
+
+  /* Intervention list */
+  .intervention {
+    display: flex;
+    gap: 16px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+
+  .intervention:last-child { border-bottom: none; }
+
+  .intervention .marker {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  .intervention .body h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .intervention .body p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .intervention .body .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 6px;
+  }
+
+  .badge-required {
+    background: rgba(251,146,60,0.15);
+    color: var(--orange);
+  }
+
+  .badge-optional {
+    background: rgba(136,136,168,0.15);
+    color: var(--text-muted);
+  }
+
+  .badge-auto {
+    background: rgba(74,222,128,0.15);
+    color: var(--green);
+  }
+
+  /* Data flow */
+  .flow-visual {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    margin: 24px 0;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 2;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .flow-visual .src { color: var(--purple); }
+  .flow-visual .file { color: var(--accent); }
+  .flow-visual .human { color: var(--orange); }
+  .flow-visual .arrow { color: var(--text-muted); }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--text-muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+  }
+
+  footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .hero { padding: 48px 16px 40px; }
+    section { padding: 40px 0; }
+    .container { padding: 0 16px; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── Hero ──────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-badge">Internal Documentation</div>
+  <h1>Blog Factory</h1>
+  <p>AI Agent 驱动 + 人类决策把关的半自动内容生产流水线<br>为 nexu 品牌打造深度 SEO 内容</p>
+</div>
+
+<!-- ─── 1. Design Philosophy ─────────────────────── -->
+<section>
+<div class="container">
+  <h2><span class="num">01</span>设计思想</h2>
+  <p class="section-desc">不是全自动内容农场，而是一个有明确分工的人机协作系统</p>
+
+  <div class="detail-grid">
+    <div class="detail-card">
+      <h4><span class="icon" style="background:rgba(167,139,250,0.15);color:var(--purple)">🤖</span> 机器负责</h4>
+      <ul>
+        <li>数据抓取（4 个免费数据源）</li>
+        <li>相关性打分（LLM 评估）</li>
+        <li>长文写作（商业叙事结构）</li>
+        <li>封面生成（Figma MCP）</li>
+        <li>关键词去重（自动历史记录）</li>
+      </ul>
+    </div>
+    <div class="detail-card">
+      <h4><span class="icon" style="background:rgba(251,146,60,0.15);color:var(--orange)">👤</span> 人类负责</h4>
+      <ul>
+        <li>选题判断（Editorial Judgment）</li>
+        <li>质量把关（Quality Gate）</li>
+        <li>品牌调性控制</li>
+        <li>反幻觉确认</li>
+        <li>配置调优（种子词 / 阈值）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <strong>核心理念：</strong>"写什么"比"怎么写"更重要。选题留给人，是刻意的设计——这是 editorial judgment，不适合全交给 AI。
+  </div>
+</div>
+</section>
+
+<!-- ─── 2. Tech Stack ────────────────────────────── -->
+<section>
+<div class="container">
+  <h2><span class="num">02</span>技术栈</h2>
+  <p class="section-desc">轻量级 Python 流水线 + LiteLLM 统一模型接口</p>
+
+  <table>
+    <thead>
+      <tr><th>层级</th><th>技术选型</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>语言</td>
+        <td><code>Python 3</code></td>
+        <td>脚本式流水线，无重型框架依赖</td>
+      </tr>
+      <tr>
+        <td>数据源</td>
+        <td>Google Trends / HN / GitHub / Reddit</td>
+        <td>全部免费，无需 API Key</td>
+      </tr>
+      <tr>
+        <td>LLM</td>
+        <td><code>OpenAI SDK → LiteLLM Proxy</code></td>
+        <td>统一端点，底层可切换任意模型</td>
+      </tr>
+      <tr>
+        <td>打分模型</td>
+        <td><code>Claude 3.5 Haiku</code></td>
+        <td>便宜快速，适合批量评估</td>
+      </tr>
+      <tr>
+        <td>写作模型</td>
+        <td><code>Claude Sonnet 4</code></td>
+        <td>高质量长文生成</td>
+      </tr>
+      <tr>
+        <td>配置</td>
+        <td><code>config.yaml</code></td>
+        <td>单文件集中管理所有参数</td>
+      </tr>
+      <tr>
+        <td>编排</td>
+        <td><code>orchestrator.py</code> CLI</td>
+        <td>Cursor Agent 代执行命令</td>
+      </tr>
+      <tr>
+        <td>封面</td>
+        <td>Figma MCP</td>
+        <td>模板克隆 + 文字填充 + 导出 PNG</td>
+      </tr>
+      <tr>
+        <td>去重</td>
+        <td><code>data/history.json</code></td>
+        <td>已写关键词自动记录，避免重复</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<!-- ─── 3. Pipeline ──────────────────────────────── -->
+<section>
+<div class="container">
+  <h2><span class="num">03</span>四步流水线</h2>
+  <p class="section-desc">Discover → Score → Select → Produce — 数据从左到右流动</p>
+
+  <div class="pipeline">
+    <div class="pipe-card">
+      <div class="step-num">Step 1</div>
+      <h4>Discover</h4>
+      <p>从 Google Trends、Hacker News、GitHub Trending、Reddit 并行抓取热点话题，自动去重已写关键词</p>
+      <span class="tag tag-ai">AI 执行</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-card">
+      <div class="step-num">Step 2</div>
+      <h4>Score</h4>
+      <p>LLM 对每个话题做相关性打分（0-100），筛出 ≥ 70 分的 Top 20 候选，输出评审表格</p>
+      <span class="tag tag-ai">AI 执行</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-card" style="border-color: var(--orange); border-width: 2px;">
+      <div class="step-num" style="color: var(--orange);">关键步骤</div>
+      <h4>Select</h4>
+      <p>人审阅候选表格，在 Cursor 对话中告诉 AI "选 1, 3, 5"，AI 写入 selected.json</p>
+      <span class="tag tag-collab">人机协作</span>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-card">
+      <div class="step-num">Step 3</div>
+      <h4>Produce</h4>
+      <p>SKILL.md 作为 system prompt，LLM 按商业叙事结构生成中英双语文章 + Figma 封面</p>
+      <span class="tag tag-ai">AI 执行</span>
+    </div>
+  </div>
+
+  <!-- Step details -->
+  <h3>Step 1: Discover — 热点发现</h3>
+  <div class="detail-grid">
+    <div class="detail-card">
+      <h4>4 个免费数据源</h4>
+      <ul>
+        <li><strong>Google Trends</strong> — 种子词: AI Agent, MCP protocol, AI workflow…</li>
+        <li><strong>Hacker News</strong> — Algolia API 搜索相关帖子 Top 30</li>
+        <li><strong>GitHub Trending</strong> — 每日趋势仓库抓取</li>
+        <li><strong>Reddit</strong> — LocalLLaMA, LangChain, MachineLearning 等子版块</li>
+      </ul>
+    </div>
+    <div class="detail-card">
+      <h4>关键逻辑</h4>
+      <ul>
+        <li>跳过 <code>history.json</code> 中已写过的关键词</li>
+        <li>合并去重后按 <code>heat_score</code> 排序</li>
+        <li>输出 <code>output/topics/{date}-topics.json</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Step 2: Score — 相关性打分</h3>
+  <p>用 <strong>Claude 3.5 Haiku</strong>（便宜快速）对每个话题评估与 nexu 核心领域的关联度。LLM 同时输出 <code>domain_match</code>、<code>suggested_angle</code>、<code>suggested_title</code>。</p>
+  <table>
+    <thead>
+      <tr><th>参数</th><th>值</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>relevance_threshold</td><td><code>70</code></td><td>低于此分数的话题被过滤</td></tr>
+      <tr><td>top_n_candidates</td><td><code>20</code></td><td>最终呈现给人审阅的候选数</td></tr>
+    </tbody>
+  </table>
+  <p>输出两份文件：<code>candidates.json</code>（结构化数据）+ <code>candidates.md</code>（人类可读表格），以及一个可视化的 <code>select.html</code> 暗色主题审阅页面。</p>
+
+  <h3>Select — 人工选题</h3>
+  <div class="highlight-box">
+    <strong>唯一必须人工参与的步骤。</strong>有两种执行方式：<br><br>
+    <strong>方式 A — CLI 交互：</strong>运行 <code>orchestrator.py select</code>，在终端查看列表输入编号<br>
+    <strong>方式 B — Cursor 对话（推荐）：</strong>AI 展示表格 → 你说"选 1, 3, 5, 7" → AI 直接写 <code>selected.json</code>
+  </div>
+
+  <h3>Step 3: Produce — 文章生成</h3>
+  <p>核心设计：<strong>把整个 SKILL.md（600 行）作为 system prompt 灌入 LLM</strong>。用 <strong>Claude Sonnet 4</strong> 按以下规范生成完整文章：</p>
+  <div class="detail-grid">
+    <div class="detail-card">
+      <h4>写作结构</h4>
+      <ul>
+        <li>四段式商业叙事：痛点 → 介入点 → 流程重构 → ROI</li>
+        <li>每篇含 Mermaid 业务流程图</li>
+        <li>结尾必须有 "Start Now 3 步骤" 或 "Decision Checklist"</li>
+        <li>中英文双版本独立写作（非翻译）</li>
+      </ul>
+    </div>
+    <div class="detail-card">
+      <h4>质量控制</h4>
+      <ul>
+        <li>反 SEO 废话（禁用空洞开场白）</li>
+        <li>每段 ≤ 4 句，每句推进论证</li>
+        <li>所有建议一个人就能执行</li>
+        <li>工具 / 框架必须给具体名称 + 链接</li>
+        <li>nexu 品牌自然融入，非硬广</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>封面生成 — Figma MCP</h3>
+  <p>从文章中提取封面标题（英文 5-9 词 / 中文 9-15 字），通过 Figma MCP 在模板上克隆 + 填文字 + 导出 PNG。</p>
+  <table>
+    <thead>
+      <tr><th>属性</th><th>英文标题</th><th>中文标题</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>字体</td><td>Hiragino Mincho Pro W3</td><td>MiSans VF Medium</td></tr>
+      <tr><td>字号</td><td>100pt</td><td>113pt</td></tr>
+      <tr><td>对齐</td><td>LEFT</td><td>CENTER</td></tr>
+      <tr><td>画布</td><td colspan="2">1802 × 1013 px, 圆角 45px</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<!-- ─── 4. Data Flow ─────────────────────────────── -->
+<section>
+<div class="container">
+  <h2><span class="num">04</span>数据流全景</h2>
+  <p class="section-desc">从数据源到最终产出的完整路径</p>
+
+  <div class="mermaid-wrap">
+    <pre class="mermaid">
+flowchart LR
+  subgraph sources ["Free Data Sources"]
+    GT["Google Trends"]
+    HN["Hacker News"]
+    GH["GitHub Trending"]
+    RD["Reddit RSS"]
+  end
+
+  GT & HN & GH & RD --> S1["step1_discover.py"]
+  S1 --> T["topics.json"]
+  T --> S2["step2_score.py\n+ Claude Haiku"]
+  S2 --> C["candidates.json\n+ .md + .html"]
+
+  C --> H{"👤 Human Review\n选题决策"}
+
+  H --> SEL["selected.json"]
+  SEL --> S3["step3_produce.py\n+ Claude Sonnet\n+ SKILL.md"]
+  S3 --> D["drafts/*.md\n中英双语"]
+  S3 --> HI["history.json\n关键词去重"]
+  D --> FIG["Figma MCP\n封面生成"]
+  FIG --> IMG["images/*-cover.png"]
+
+  style H fill:#3d2800,stroke:#fb923c,stroke-width:2px,color:#fb923c
+    </pre>
+  </div>
+
+  <h3>文件输出结构</h3>
+  <pre><code>output/
+├── topics/
+│   └── {YYYY-MM-DD}-topics.json          ← Step 1 产出
+├── scored/
+│   ├── {date}-candidates.json            ← Step 2 产出（结构化）
+│   ├── {date}-candidates.md              ← Step 2 产出（人类可读）
+│   ├── {date}-select.html                ← Step 2 产出（可视化审阅）
+│   └── {date}-selected.json              ← Select 产出（人选的话题）
+├── drafts/{date}/
+│   ├── {slug}.md                         ← Step 3 产出（英文版）
+│   └── {slug}-zh.md                      ← Step 3 产出（中文版）
+├── images/
+│   ├── {slug}-cover.png                  ← 封面（英文）
+│   └── {slug}-zh-cover.png               ← 封面（中文）
+└── preview.html                          ← 浏览器预览</code></pre>
+</div>
+</section>
+
+<!-- ─── 5. Human Intervention ────────────────────── -->
+<section>
+<div class="container">
+  <h2><span class="num">05</span>人工干预环节</h2>
+  <p class="section-desc">6 个关键节点——只有 1 个是必须的，其余为可选</p>
+
+  <div class="intervention">
+    <div class="marker">⚙️</div>
+    <div class="body">
+      <h4>配置调整</h4>
+      <p>修改 <code>config.yaml</code> 中的种子关键词、数据源开关、打分阈值、LLM 模型选择、品牌上下文</p>
+      <span class="badge badge-optional">前置设定</span>
+    </div>
+  </div>
+
+  <div class="intervention">
+    <div class="marker" style="background:rgba(251,146,60,0.15);border-color:var(--orange);">🎯</div>
+    <div class="body">
+      <h4>选题决策</h4>
+      <p>审阅 <code>candidates.md</code> 或 <code>select.html</code> 表格，决定写哪几篇。在 Cursor 对话中告诉 AI 编号即可。<strong>这是唯一必须人工参与的步骤。</strong></p>
+      <span class="badge badge-required">必须参与</span>
+    </div>
+  </div>
+
+  <div class="intervention">
+    <div class="marker">🛡️</div>
+    <div class="body">
+      <h4>反幻觉确认</h4>
+      <p>SKILL.md 规定：遇到不确定的业务术语 / 产品名称 / 数据指标时，LLM 必须暂停写作并向用户确认</p>
+      <span class="badge badge-optional">写作中触发</span>
+    </div>
+  </div>
+
+  <div class="intervention">
+    <div class="marker">🖼️</div>
+    <div class="body">
+      <h4>截图插入确认</h4>
+      <p>当源文档包含截图时，AI 会列出清单并询问是否需要插入博客内容</p>
+      <span class="badge badge-optional">可选</span>
+    </div>
+  </div>
+
+  <div class="intervention">
+    <div class="marker">✅</div>
+    <div class="body">
+      <h4>Quality Gate 审查</h4>
+      <p>SKILL.md 中定义了 20+ 项自检清单：写作准则检查 / 商业逻辑检查 / SEO 检查 / 封面检查</p>
+      <span class="badge badge-auto">自动 + 人工复查</span>
+    </div>
+  </div>
+
+  <div class="intervention">
+    <div class="marker">📝</div>
+    <div class="body">
+      <h4>历史去重管理</h4>
+      <p><code>history.json</code> 自动维护已写关键词。如需重写某话题，手动编辑该文件移除对应关键词</p>
+      <span class="badge badge-auto">自动</span>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ─── 6. Design Highlights ─────────────────────── -->
+<section>
+<div class="container">
+  <h2><span class="num">06</span>设计亮点</h2>
+  <p class="section-desc">5 个关键设计决策及其背后的考量</p>
+
+  <div class="detail-grid">
+    <div class="detail-card">
+      <h4>SKILL.md = System Prompt</h4>
+      <ul>
+        <li>写作规范不是文档，而是直接喂给 LLM 的指令</li>
+        <li>改 SKILL = 改写作风格，零代码变更</li>
+        <li>包含品牌指南、写作准则、禁用词表、Quality Gate</li>
+      </ul>
+    </div>
+    <div class="detail-card">
+      <h4>LiteLLM 统一接口</h4>
+      <ul>
+        <li>所有 LLM 调用走同一个 OpenAI 兼容端点</li>
+        <li>底层随时切换 Claude / GPT / 开源模型</li>
+        <li>无需改代码，只改 config.yaml</li>
+      </ul>
+    </div>
+    <div class="detail-card">
+      <h4>分级模型策略</h4>
+      <ul>
+        <li>打分用 Haiku（便宜 + 快速）</li>
+        <li>写作用 Sonnet（质量 + 深度）</li>
+        <li>成本和质量两手抓</li>
+      </ul>
+    </div>
+    <div class="detail-card">
+      <h4>自动去重机制</h4>
+      <ul>
+        <li><code>history.json</code> 记录所有已写关键词</li>
+        <li>Discover 阶段自动跳过历史话题</li>
+        <li>内容覆盖面随时间自然扩大</li>
+      </ul>
+    </div>
+    <div class="detail-card">
+      <h4>人机协作设计</h4>
+      <ul>
+        <li>选题刻意留给人类（Editorial Judgment）</li>
+        <li>在 Cursor 对话中完成，无需记命令</li>
+        <li>AI 负责执行，人负责决策</li>
+      </ul>
+    </div>
+    <div class="detail-card">
+      <h4>Cursor 原生工作流</h4>
+      <ul>
+        <li>整个流水线在 Cursor IDE 中驱动</li>
+        <li>用户说自然语言，AI Agent 跑脚本</li>
+        <li>无需记忆任何 CLI 命令</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ─── 7. CLI Reference ─────────────────────────── -->
+<section>
+<div class="container">
+  <h2><span class="num">07</span>CLI 命令参考</h2>
+  <p class="section-desc">通常由 Cursor Agent 代执行，也可手动运行</p>
+
+  <table>
+    <thead>
+      <tr><th>命令</th><th>作用</th><th>输出</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>python pipeline/orchestrator.py discover</code></td>
+        <td>抓取热点话题</td>
+        <td><code>output/topics/{date}-topics.json</code></td>
+      </tr>
+      <tr>
+        <td><code>python pipeline/orchestrator.py score</code></td>
+        <td>LLM 相关性打分</td>
+        <td><code>output/scored/{date}-candidates.*</code></td>
+      </tr>
+      <tr>
+        <td><code>python pipeline/orchestrator.py select</code></td>
+        <td>交互式选题</td>
+        <td><code>output/scored/{date}-selected.json</code></td>
+      </tr>
+      <tr>
+        <td><code>python pipeline/orchestrator.py produce</code></td>
+        <td>生成博客文章</td>
+        <td><code>output/drafts/{date}/*.md</code></td>
+      </tr>
+      <tr>
+        <td><code>python pipeline/orchestrator.py run</code></td>
+        <td>Discover + Score，暂停等人审</td>
+        <td>两步合一，输出提示人类介入</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<!-- ─── Footer ───────────────────────────────────── -->
+<footer>
+  <p>Blog Factory Architecture Docs &middot; nexu team &middot; Generated 2026-03-31</p>
+  <p style="margin-top: 8px;"><a href="https://github.com/nexu-io/nexu">github.com/nexu-io/nexu</a></p>
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a1a2e',
+      primaryTextColor: '#e4e4f0',
+      primaryBorderColor: '#2e2e4a',
+      lineColor: '#00e5ff',
+      secondaryColor: '#222240',
+      tertiaryColor: '#2e2e4a',
+      fontSize: '14px'
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis'
+    }
+  });
+</script>
+
+</body>
+</html>
