@@ -1,5 +1,7 @@
 # Blog Factory — AI-Powered Blog Production Pipeline
 
+[简体中文](README.zh-CN.md) | English
+
 An automated blog production pipeline that discovers trending topics, scores relevance, and generates long-form articles optimized for SEO. Built for [nexu](https://nexu.io)'s content strategy, driven entirely by AI Agent in Cursor.
 
 ## How It Works
