@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog Factory — 工作流介绍</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface-2: #222240;
+    --border: #2a2a4a;
+    --text: #e8e8f0;
+    --text-muted: #8888a8;
+    --accent: #00e5ff;
+    --accent-dim: rgba(0,229,255,0.08);
+    --green: #4ade80;
+    --orange: #fb923c;
+    --purple: #a78bfa;
+    --pink: #f472b6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 80px 24px 60px;
+    background: linear-gradient(180deg, rgba(0,229,255,0.06) 0%, transparent 100%);
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--accent-dim);
+    border: 1px solid rgba(0,229,255,0.2);
+    color: var(--accent);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero p {
+    font-size: 18px;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Container */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Section */
+  .section {
+    padding: 60px 0;
+  }
+  .section-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .section-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 36px;
+  }
+
+  /* Flow */
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+  }
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 130px;
+  }
+  .flow-step-num {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .flow-step-name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .flow-step-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .flow-arrow {
+    color: var(--accent);
+    font-size: 20px;
+    padding: 0 8px;
+  }
+
+  /* Three types */
+  .types-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 768px) {
+    .types-grid { grid-template-columns: 1fr; }
+  }
+  .type-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    transition: border-color 0.2s;
+  }
+  .type-card:hover { border-color: var(--accent); }
+  .type-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+  .type-icon-ann { background: rgba(251,146,60,0.15); }
+  .type-icon-guide { background: rgba(167,139,250,0.15); }
+  .type-icon-uc { background: rgba(0,229,255,0.15); }
+  .type-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .type-card .type-cat {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .type-card p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .type-flow-label {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .type-flow-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .type-flow-step {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  .type-flow-arrow {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 26px;
+  }
+  .type-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .tag-no-script { background: rgba(74,222,128,0.15); color: var(--green); }
+  .tag-pipeline { background: rgba(0,229,255,0.15); color: var(--accent); }
+
+  /* Comparison table */
+  .comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 48px;
+  }
+  .comp-table th, .comp-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .comp-table th {
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  .comp-table td:first-child { font-weight: 600; }
+  .check { color: var(--green); }
+  .cross { color: var(--text-muted); }
+
+  /* Tech stack */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 768px) {
+    .tech-grid { grid-template-columns: 1fr; }
+  }
+  .tech-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .tech-item h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+  .tech-item p {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Output */
+  .output-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .output-box h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .file-tree {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text-muted);
+  }
+  .file-tree .highlight { color: var(--accent); }
+  .file-tree .comment { color: #555570; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 60px 0;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+
+  /* Stats */
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin: 40px 0;
+    flex-wrap: wrap;
+  }
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Repo link */
+  .repo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 20px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: border-color 0.2s;
+  }
+  .repo-link:hover { border-color: var(--accent); }
+
+  .brand-note {
+    background: var(--accent-dim);
+    border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 48px;
+  }
+  .brand-note h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .brand-note p {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">nexu Content Engine</div>
+  <h1>Blog <span>Factory</span></h1>
+  <p>AI 驱动的博客自动化生产流水线<br>从热点发现到文章发布，全程 Cursor Agent 驱动</p>
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-num">3</div>
+      <div class="stat-label">博客类型</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">4</div>
+      <div class="stat-label">数据源</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">2</div>
+      <div class="stat-label">语言版本</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0</div>
+      <div class="stat-label">手动脚本</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- Section: Pipeline Overview -->
+<div class="section">
+  <h2 class="section-title">整体流水线</h2>
+  <p class="section-sub">三种博客类型走不同分支，共享品牌规范和写作准则</p>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-step-num">Input</div>
+      <div class="flow-step-name">信息源</div>
+      <div class="flow-step-desc">热点 / Release / 功能</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">Process</div>
+      <div class="flow-step-name">AI 生成</div>
+      <div class="flow-step-desc">SKILL.md 驱动</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">Review</div>
+      <div class="flow-step-name">人工审核</div>
+      <div class="flow-step-desc">对话式选题</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">Output</div>
+      <div class="flow-step-name">EN + ZH</div>
+      <div class="flow-step-desc">Astro 格式</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">Deploy</div>
+      <div class="flow-step-name">nexu-landing</div>
+      <div class="flow-step-desc">PR → 发布</div>
+    </div>
+  </div>
+</div>
+
+<!-- Section: Three Types -->
+<div class="section">
+  <h2 class="section-title">三种博客类型</h2>
+  <p class="section-sub">根据内容目的选择对应的工作流分支</p>
+
+  <div class="types-grid">
+    <!-- Announcement -->
+    <div class="type-card">
+      <div class="type-icon type-icon-ann">📢</div>
+      <h3>Announcement</h3>
+      <div class="type-cat">产品公告 · 版本发布 · 新功能上线</div>
+      <span class="type-tag tag-no-script">无需脚本</span>
+      <p>nexu 发版、新集成接入、重要更新时触发。信息源来自 GitHub Release 或产品路线图。</p>
+      <div class="type-flow-label">工作流</div>
+      <div class="type-flow-steps">
+        <span class="type-flow-step">提供 Release</span>
+        <span class="type-flow-arrow">→</span>
+        <span class="type-flow-step">AI 写公告</span>
+        <span class="type-flow-arrow">→</span>
+        <span class="type-flow-step">EN + ZH</span>
+      </div>
+    </div>
+    <!-- Guide -->
+    <div class="type-card">
+      <div class="type-icon type-icon-guide">📖</div>
+      <h3>Guide</h3>
+      <div class="type-cat">操作教程 · 渠道接入 · 对比指南</div>
+      <span class="type-tag tag-no-script">无需脚本</span>
+      <p>新功能需要教程、渠道接入指南、工具对比时触发。信息源来自功能说明和操作截图。</p>
+      <div class="type-flow-label">工作流</div>
+      <div class="type-flow-steps">
+        <span class="type-flow-step">提供功能说明</span>
+        <span class="type-flow-arrow">→</span>
+        <span class="type-flow-step">AI 写教程</span>
+        <span class="type-flow-arrow">→</span>
+        <span class="type-flow-step">EN + ZH</span>
+      </div>
+    </div>
+    <!-- Use Case -->
+    <div class="type-card">
+      <div class="type-icon type-icon-uc">🔥</div>
+      <h3>Use Case</h3>
+      <div class="type-cat">热点实战 · SEO 内容 · 场景文章</div>
+      <span class="type-tag tag-pipeline">Python Pipeline</span>
+      <p>基于外部热点，嫁接 nexu 使用场景的深度内容。走完整的 Discover → Score → Select → Produce 流水线。</p>
+      <div class="type-flow-label">工作流</div>
+      <div class="type-flow-steps">
+        <span class="type-flow-step">Discover</span>
+        <span class="type-flow-arrow">→</span>
+        <span class="type-flow-step">Score</span>
+        <span class="type-flow-arrow">→</span>
+        <span class="type-flow-step">Select</span>
+        <span class="type-flow-arrow">→</span>
+        <span class="type-flow-step">Produce</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section: Comparison -->
+<div class="section">
+  <h2 class="section-title">类型对比</h2>
+  <p class="section-sub">每种类型的关键差异一览</p>
+
+  <table class="comp-table">
+    <thead>
+      <tr>
+        <th>维度</th>
+        <th>Announcement</th>
+        <th>Guide</th>
+        <th>Use Case</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>信息源</td>
+        <td>GitHub Release / PR</td>
+        <td>功能说明 / 截图</td>
+        <td>Google Trends / HN / Reddit</td>
+      </tr>
+      <tr>
+        <td>Python Pipeline</td>
+        <td class="cross">不需要</td>
+        <td class="cross">不需要</td>
+        <td class="check">需要（4 步）</td>
+      </tr>
+      <tr>
+        <td>nexu 角色</td>
+        <td>主角</td>
+        <td>主角</td>
+        <td>工具推荐（自然融入）</td>
+      </tr>
+      <tr>
+        <td>文章结构</td>
+        <td>Highlights → Bug Fixes → How to</td>
+        <td>Step 1 → Step 2 → Step 3 + FAQ</td>
+        <td>痛点 → 方案 → 重构 → ROI</td>
+      </tr>
+      <tr>
+        <td>截图</td>
+        <td>可选</td>
+        <td>必须（每步配图）</td>
+        <td>不需要</td>
+      </tr>
+      <tr>
+        <td>Mermaid 流程图</td>
+        <td class="cross">不需要</td>
+        <td class="cross">不需要</td>
+        <td class="check">至少 1 个</td>
+      </tr>
+      <tr>
+        <td>双语输出</td>
+        <td class="check">EN + ZH</td>
+        <td class="check">EN + ZH</td>
+        <td class="check">EN + ZH</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Section: Use Case Pipeline Detail -->
+<div class="section">
+  <h2 class="section-title">Use Case Pipeline 详解</h2>
+  <p class="section-sub">完整的热点内容自动化生产流程</p>
+
+  <div class="flow">
+    <div class="flow-step" style="border-color: var(--green);">
+      <div class="flow-step-num">Step 1</div>
+      <div class="flow-step-name">Discover</div>
+      <div class="flow-step-desc">4 个免费数据源</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: var(--orange);">
+      <div class="flow-step-num">Step 2</div>
+      <div class="flow-step-name">Score</div>
+      <div class="flow-step-desc">LLM 相关性打分</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: var(--purple);">
+      <div class="flow-step-num">Human</div>
+      <div class="flow-step-name">Select</div>
+      <div class="flow-step-desc">看表 + 告诉 AI</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: var(--pink);">
+      <div class="flow-step-num">Step 3</div>
+      <div class="flow-step-name">Produce</div>
+      <div class="flow-step-desc">LLM 生成文章</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color: var(--accent);">
+      <div class="flow-step-num">Step 4</div>
+      <div class="flow-step-name">Cover</div>
+      <div class="flow-step-desc">Figma / 图片生成</div>
+    </div>
+  </div>
+
+  <div class="tech-grid">
+    <div class="tech-item">
+      <h4>Google Trends</h4>
+      <p>通过 pytrends 抓取 AI Agent / LLM / 自动化相关的上升趋势关键词</p>
+    </div>
+    <div class="tech-item">
+      <h4>Hacker News</h4>
+      <p>Algolia API 搜索 AI agent、LLM、开源 AI 等话题的热门讨论</p>
+    </div>
+    <div class="tech-item">
+      <h4>GitHub Trending</h4>
+      <p>抓取每日/每周热门开源项目，发现新工具和框架</p>
+    </div>
+    <div class="tech-item">
+      <h4>Reddit</h4>
+      <p>从 LocalLLaMA / LangChain / MachineLearning 等子版块抓取热门帖子</p>
+    </div>
+  </div>
+
+  <div class="brand-note">
+    <h4>Select 步骤：人 + AI 协作，零脚本</h4>
+    <p>用户在 Cursor 中查看候选话题表格，告诉 AI "选 1、3、5"，AI 直接写入 selected.json。全程对话完成，不需要跑任何 Python 命令。</p>
+  </div>
+</div>
+
+<!-- Section: Output -->
+<div class="section">
+  <h2 class="section-title">输出规范</h2>
+  <p class="section-sub">对齐 nexu-landing 博客仓库的 Astro 格式</p>
+
+  <div class="output-box">
+    <h4>每篇文章交付 4 个文件</h4>
+    <div class="file-tree">
+      <span class="highlight">{slug}.md</span> <span class="comment">← 英文版（Astro frontmatter）</span><br>
+      <span class="highlight">{slug}.zh.md</span> <span class="comment">← 中文版（Astro frontmatter）</span><br>
+      <span class="highlight">blog-{slug}-en.webp</span> <span class="comment">← 英文封面</span><br>
+      <span class="highlight">blog-{slug}-zh.webp</span> <span class="comment">← 中文封面</span>
+    </div>
+  </div>
+
+  <div class="output-box">
+    <h4>Astro Frontmatter 格式</h4>
+    <div class="file-tree">
+      ---<br>
+      <span class="highlight">publishDate</span>: 2026-03-31T00:00:00Z<br>
+      <span class="highlight">title</span>: "文章标题"<br>
+      <span class="highlight">excerpt</span>: "150-160 字符摘要"<br>
+      <span class="highlight">image</span>: ~/assets/images/blog-{slug}-{lang}.webp<br>
+      <span class="highlight">tags</span>:<br>
+      &nbsp;&nbsp;- announcements <span class="comment">| guides | use-cases</span><br>
+      <span class="highlight">category</span>: Announcements <span class="comment">| Guides | Use Cases</span><br>
+      ---
+    </div>
+  </div>
+</div>
+
+<!-- Section: Tech Stack -->
+<div class="section">
+  <h2 class="section-title">技术栈</h2>
+  <p class="section-sub">轻量级 Python 流水线 + Cursor AI Agent</p>
+
+  <div class="tech-grid">
+    <div class="tech-item">
+      <h4>Pipeline</h4>
+      <p>Python 3 + pytrends / requests / beautifulsoup4 / openai / pyyaml</p>
+    </div>
+    <div class="tech-item">
+      <h4>LLM</h4>
+      <p>OpenAI 兼容 API via LiteLLM 代理<br>打分: claude-3.5-haiku / 写作: claude-sonnet-4</p>
+    </div>
+    <div class="tech-item">
+      <h4>SKILL.md</h4>
+      <p>Cursor Skill 系统 — 定义写作人设、文章模板、SEO 规则、品牌融入指南、Quality Gate</p>
+    </div>
+    <div class="tech-item">
+      <h4>目标仓库</h4>
+      <p>nexu-io/nexu-landing/blog (Astro 框架)<br>支持 category 路由 + 双语</p>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- Footer -->
+<div class="footer">
+  <a href="https://github.com/ashleyashli/seo-blog-factory" class="repo-link">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+    ashleyashli/seo-blog-factory
+  </a>
+  <p style="margin-top: 16px;">Blog Factory v1.0 — 2026.03.31</p>
+</div>
+
+</div>
+</body>
+</html>
